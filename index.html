@@ -26,14 +26,16 @@
         /* ── Controls ── */
         #controls-wrap {
             flex-shrink: 0;
-            transition: height 0.3s ease, opacity 0.3s ease;
-            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            max-height: 200px;
+            overflow: visible;
         }
 
         body.fullscreen #controls-wrap {
-            height: 0 !important;
+            max-height: 0 !important;
             opacity: 0;
             pointer-events: none;
+            overflow: hidden;
         }
 
         .controls {
@@ -407,6 +409,7 @@
         <kbd>?</kbd> This help
     </div>
 
+    <script src="config.js"></script>
     <script>
         // ── State ──────────────────────────────────────────────────────────────
         let player;
