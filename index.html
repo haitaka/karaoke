@@ -161,12 +161,9 @@
         body.phase-video #yt-url              { width: 460px; border-color: var(--accent); }
         body.phase-video #lyrics-search-group { opacity: 0.35; }
         body.phase-video #lyrics-search       { width: 140px; }
-        body.phase-video #play-btn            { opacity: 0.35; }
-
         /* phase-lyrics: lyrics search active */
         body.phase-lyrics #yt-url             { width: 180px; }
         body.phase-lyrics #lyrics-search      { width: 400px; border-color: var(--accent); }
-        body.phase-lyrics #play-btn           { opacity: 0.35; }
 
         /* phase-play: playback active */
         body.phase-play #yt-url               { width: 160px; }
@@ -174,25 +171,40 @@
         body.phase-play #yt-search-group      { opacity: 0.5; }
         body.phase-play #lyrics-search-group  { opacity: 0.5; }
 
-        /* ── Progress bar ── */
+        /* ── Transport (play button + progress bar) ── */
+        #transport {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            background: #0a0a0a;
+            border-bottom: 1px solid #1e1e1e;
+            gap: 0;
+        }
+
+        body.fullscreen #transport { display: none; }
+
+        #play-btn {
+            flex-shrink: 0;
+            height: 36px;
+            padding: 0 20px;
+            border-radius: 0;
+            font-size: 0.85rem;
+            border-right: 1px solid #222;
+        }
+
         #progress-wrap {
-            height: 20px;
-            background: #1a1a1a;
+            height: 36px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            padding: 0 0;
-            flex-shrink: 0;
+            flex: 1;
             position: relative;
-            transition: height 0.15s;
         }
-
-        #progress-wrap:hover { height: 28px; }
 
         #progress-bg {
             position: absolute;
             inset: 0;
-            background: #2a2a2a;
+            background: #1e1e1e;
         }
 
         #progress-bar {
@@ -211,8 +223,6 @@
             pointer-events: none;
             z-index: 1;
         }
-
-        body.fullscreen #progress-wrap { display: none; }
 
         /* ── Lyrics ── */
         .lyrics-wrapper {
@@ -372,18 +382,19 @@
                 <div id="search-results"></div>
             </div>
 
-            <button id="play-btn" disabled>Play</button>
-
             <div id="youtube-container">
                 <div id="player"></div>
             </div>
         </div>
     </div>
 
-    <div id="progress-wrap">
-        <div id="progress-bg"></div>
-        <div id="progress-bar"></div>
-        <span id="progress-time">0:00 / 0:00</span>
+    <div id="transport">
+        <button id="play-btn" disabled>Play</button>
+        <div id="progress-wrap">
+            <div id="progress-bg"></div>
+            <div id="progress-bar"></div>
+            <span id="progress-time">0:00 / 0:00</span>
+        </div>
     </div>
 
     <div class="lyrics-wrapper" id="lyrics-wrapper">
@@ -557,6 +568,7 @@
             const rect = progressWrap.getBoundingClientRect();
             const ratio = (e.clientX - rect.left) / rect.width;
             player.seekTo(ratio * player.getDuration(), true);
+            updateProgress();
         });
 
         // ── YouTube API ────────────────────────────────────────────────────────
