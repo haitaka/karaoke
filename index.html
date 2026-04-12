@@ -135,6 +135,16 @@
 
         .result-item.yt-item { flex-direction: row; align-items: center; gap: 10px; }
 
+        .results-section-label {
+            padding: 6px 12px 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+            background: rgba(0,0,0,0.3);
+        }
+
         .result-item {
             padding: 12px;
             border-bottom: 1px solid #3e3e3e;
@@ -625,34 +635,34 @@
             ytResultsBox.innerHTML = '<div class="result-item" style="color:#b3b3b3;">Searching…</div>';
             ytResultsBox.classList.add('active');
             try {
-                const searchRes = await fetch(
-                    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=8&q=${encodeURIComponent(query)}&key=${YT_API_KEY}`
-                );
-                const searchData = await searchRes.json();
-                if (!searchData.items?.length) {
-                    ytResultsBox.innerHTML = '<div class="result-item" style="color:#b3b3b3;">No results.</div>';
-                    return;
-                }
+                const apiSearch = (q, n) => fetch(
+                    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${n}&q=${encodeURIComponent(q)}&key=${YT_API_KEY}`
+                ).then(r => r.json());
 
-                const ids = searchData.items.map(i => i.id.videoId).join(',');
-                const detailRes = await fetch(
-                    `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${ids}&key=${YT_API_KEY}`
-                );
-                const detailData = await detailRes.json();
+                const [instrData, allData] = await Promise.all([
+                    apiSearch(query + ' instrumental', 3),
+                    apiSearch(query, 8),
+                ]);
+
+                const instrItems = instrData.items || [];
+                const instrIds = new Set(instrItems.map(i => i.id.videoId));
+                const otherItems = (allData.items || []).filter(i => !instrIds.has(i.id.videoId));
+
+                const allIds = [...instrItems, ...otherItems].map(i => i.id.videoId).join(',');
+                const detailData = await fetch(
+                    `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${allIds}&key=${YT_API_KEY}`
+                ).then(r => r.json());
                 const durations = {};
                 detailData.items?.forEach(v => { durations[v.id] = parseISO8601(v.contentDetails.duration); });
 
                 ytResultsBox.innerHTML = '';
-                searchData.items.forEach(item => {
-                    const { videoId } = item.id;
-                    const { title, channelTitle, thumbnails } = item.snippet;
-                    const thumb = thumbnails?.default?.url || '';
-                    const dur = durations[videoId] ? formatDuration(durations[videoId]) : '';
 
+                function makeItem({ id: { videoId }, snippet: { title, channelTitle, thumbnails } }) {
+                    const dur = durations[videoId] ? formatDuration(durations[videoId]) : '';
                     const div = document.createElement('div');
                     div.className = 'result-item yt-item';
                     div.innerHTML = `
-                        <img class="yt-result-thumb" src="${thumb}" alt="">
+                        <img class="yt-result-thumb" src="${thumbnails?.default?.url || ''}" alt="">
                         <div class="yt-result-info">
                             <div class="yt-result-title">${title}</div>
                             <div class="yt-result-meta">${channelTitle}${dur ? ' • ' + dur : ''}</div>
@@ -663,8 +673,27 @@
                         ytInput.value = title;
                         loadVideoById(videoId);
                     });
-                    ytResultsBox.appendChild(div);
-                });
+                    return div;
+                }
+
+                function makeLabel(text) {
+                    const el = document.createElement('div');
+                    el.className = 'results-section-label';
+                    el.textContent = text;
+                    return el;
+                }
+
+                if (instrItems.length) {
+                    ytResultsBox.appendChild(makeLabel('Instrumental'));
+                    instrItems.forEach(i => ytResultsBox.appendChild(makeItem(i)));
+                }
+                if (otherItems.length) {
+                    ytResultsBox.appendChild(makeLabel('All results'));
+                    otherItems.forEach(i => ytResultsBox.appendChild(makeItem(i)));
+                }
+                if (!instrItems.length && !otherItems.length) {
+                    ytResultsBox.innerHTML = '<div class="result-item" style="color:#b3b3b3;">No results.</div>';
+                }
             } catch (err) {
                 console.error(err);
                 ytResultsBox.innerHTML = '<div class="result-item" style="color:red;">Search failed.</div>';
