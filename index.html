@@ -264,7 +264,7 @@
 
         /* ── Floating controls ── */
         #floating-controls {
-            position: absolute;
+            position: fixed;
             bottom: 24px;
             right: 24px;
             display: flex;
@@ -408,18 +408,18 @@
         </div>
 
         <span id="fs-hint">Press F to exit fullscreen</span>
+    </div>
 
-        <div id="floating-controls">
-            <div class="float-group" id="color-group"></div>
-            <div class="float-group">
-                <button class="float-btn" id="font-dec-btn" title="Decrease font size (-)">−</button>
-                <span id="font-size-label">3.5rem</span>
-                <button class="float-btn" id="font-inc-btn" title="Increase font size (+)">+</button>
-            </div>
-            <div class="float-group">
-                <button class="float-btn" id="fullscreen-btn" title="Toggle fullscreen (F)">⛶</button>
-                <button class="float-btn" id="shortcuts-btn" title="Keyboard shortcuts (?)">?</button>
-            </div>
+    <div id="floating-controls">
+        <div class="float-group" id="color-group"></div>
+        <div class="float-group">
+            <button class="float-btn" id="font-dec-btn" title="Decrease font size (-)">−</button>
+            <span id="font-size-label">3.5rem</span>
+            <button class="float-btn" id="font-inc-btn" title="Increase font size (+)">+</button>
+        </div>
+        <div class="float-group">
+            <button class="float-btn" id="fullscreen-btn" title="Toggle fullscreen (F)">⛶</button>
+            <button class="float-btn" id="shortcuts-btn" title="Keyboard shortcuts (?)">?</button>
         </div>
     </div>
 
