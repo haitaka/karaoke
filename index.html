@@ -530,11 +530,11 @@
                     break;
                 case 'ArrowRight':
                     e.preventDefault();
-                    if (player && player.seekTo) player.seekTo(player.getCurrentTime() + 5, true);
+                    seekTo(player.getCurrentTime() + 5);
                     break;
                 case 'ArrowLeft':
                     e.preventDefault();
-                    if (player && player.seekTo) player.seekTo(Math.max(0, player.getCurrentTime() - 5), true);
+                    seekTo(Math.max(0, player.getCurrentTime() - 5));
                     break;
                 case '+': case '=':
                     if (fontSizeIndex < FONT_SIZES.length - 1) { fontSizeIndex++; applyFontSize(); }
@@ -566,12 +566,17 @@
             progressTime.textContent = `${formatDuration(cur)} / ${formatDuration(dur)}`;
         }
 
+        function seekTo(time) {
+            if (!player?.seekTo) return;
+            player.seekTo(time, true);
+            setTimeout(() => { updateProgress(); syncLyrics(); }, 200);
+        }
+
         progressWrap.addEventListener('click', (e) => {
             if (!player || !player.getDuration) return;
             const rect = progressWrap.getBoundingClientRect();
             const ratio = (e.clientX - rect.left) / rect.width;
-            player.seekTo(ratio * player.getDuration(), true);
-            updateProgress();
+            seekTo(ratio * player.getDuration());
         });
 
         // ── YouTube API ────────────────────────────────────────────────────────
@@ -868,7 +873,7 @@
                 div.className = 'lyric-line';
                 div.id = `lyric-${i}`;
                 div.innerText = lyric.text;
-                div.addEventListener('click', () => { if (player?.seekTo) player.seekTo(lyric.time, true); });
+                div.addEventListener('click', () => seekTo(lyric.time));
                 container.appendChild(div);
             });
         }
