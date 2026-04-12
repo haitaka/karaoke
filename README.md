@@ -1,4 +1,4 @@
-# Sandpit Turtle
+# Sandpit Turtle Karaoke
 
 A synchronised lyrics display for home karaoke parties. Search for a YouTube video, pick a track from [lrclib.net](https://lrclib.net), and the lyrics scroll in time with the music.
 
