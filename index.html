@@ -6,12 +6,11 @@
     <title>Sempiternal Lyrics Player</title>
     <style>
 
-        @font-face {
-            font-family: 'FaceYourFears';
-            src: url('FaceYourFears.ttf') format('truetype');
+        :root {
+            --accent: #d03c5a;
+            --lyric-size: 3.5rem;
         }
 
-        /* --- Main CSS --- */
         body {
             margin: 0;
             padding: 0;
@@ -24,7 +23,19 @@
             overflow: hidden;
         }
 
-        /* Controls Section - Single Row */
+        /* ── Controls ── */
+        #controls-wrap {
+            flex-shrink: 0;
+            transition: height 0.3s ease, opacity 0.3s ease;
+            overflow: hidden;
+        }
+
+        body.fullscreen #controls-wrap {
+            height: 0 !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+
         .controls {
             background-color: #000000;
             padding: 20px;
@@ -57,13 +68,10 @@
             white-space: nowrap;
         }
 
-        .controls textarea:focus {
-            outline: 2px solid #d03c5a;
-            outline-offset: -2px;
-        }
+        .controls textarea:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
 
         .controls button {
-            background-color: #d03c5a;
+            background-color: var(--accent);
             color: white;
             border: none;
             height: 38px;
@@ -71,31 +79,17 @@
             border-radius: 20px;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.1s, background-color 0.2s;
+            transition: transform 0.1s, filter 0.2s;
             white-space: nowrap;
         }
 
-        .controls button:hover:not(:disabled) {
-            background-color: #e64263;
-            transform: scale(1.05);
-        }
+        .controls button:hover:not(:disabled) { filter: brightness(1.2); transform: scale(1.05); }
 
         .controls button:disabled {
             background-color: #555;
             color: #888;
             cursor: not-allowed;
             transform: none;
-        }
-
-        #font-toggle-btn {
-            background-color: #242424;
-            border: 1px solid #d03c5a;
-            color: #d03c5a;
-        }
-
-        #font-toggle-btn:hover {
-            background-color: #d03c5a;
-            color: white;
         }
 
         #video-info { display: flex; align-items: center; gap: 12px; }
@@ -110,12 +104,7 @@
             white-space: nowrap;
         }
 
-        #video-duration {
-            color: #d03c5a;
-            font-size: 0.9em;
-            font-weight: bold;
-            white-space: nowrap;
-        }
+        #video-duration { color: var(--accent); font-size: 0.9em; font-weight: bold; white-space: nowrap; }
 
         .search-group { position: relative; display: flex; gap: 10px; }
 
@@ -150,16 +139,52 @@
         .result-item:hover { background: #3e3e3e; }
         .result-header { display: flex; justify-content: space-between; align-items: center; }
         .result-title { font-weight: bold; color: #fff; }
-        .result-duration { font-size: 0.85rem; color: #d03c5a; font-weight: bold; }
+        .result-duration { font-size: 0.85rem; color: var(--accent); font-weight: bold; }
         .result-artist { font-size: 0.85rem; color: #b3b3b3; }
 
-        #youtube-container {
-            width: 200px;
-            height: 56px;
-            margin-left: auto;
+        #youtube-container { width: 200px; height: 56px; margin-left: auto; flex-shrink: 0; }
+
+        /* ── Progress bar ── */
+        #progress-wrap {
+            height: 20px;
+            background: #1a1a1a;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 0 0;
             flex-shrink: 0;
+            position: relative;
+            transition: height 0.15s;
         }
 
+        #progress-wrap:hover { height: 28px; }
+
+        #progress-bg {
+            position: absolute;
+            inset: 0;
+            background: #2a2a2a;
+        }
+
+        #progress-bar {
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 0%;
+            background: var(--accent);
+            transition: width 0.1s linear;
+        }
+
+        #progress-time {
+            position: absolute;
+            right: 10px;
+            font-size: 0.72rem;
+            color: #aaa;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        body.fullscreen #progress-wrap { display: none; }
+
+        /* ── Lyrics ── */
         .lyrics-wrapper {
             flex: 1;
             overflow-y: auto;
@@ -178,12 +203,10 @@
             gap: 20px;
         }
 
-        /* --- Default Metal Font Style --- */
         .lyric-line {
-            /* TO USE YOUR OWN FONT: Change 'Eater' to 'FaceYourFears' */
-            font-family: 'FaceYourFears', cursive;
-            font-size: 3.5rem;
-            letter-spacing: 2px;
+            font-size: var(--lyric-size);
+            font-weight: 700;
+            letter-spacing: 1px;
             color: #6a6a6a;
             transition: color 0.3s ease, transform 0.3s ease, text-shadow 0.3s ease;
             cursor: pointer;
@@ -195,85 +218,326 @@
         .lyric-line.active {
             color: #ffffff;
             transform: scale(1.05);
-            text-shadow: 0 0 3px rgba(208, 60, 90, 0.8), 0 0 3px rgba(208, 60, 90, 0.5);
+            text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 70%, transparent);
         }
 
-        /* --- Normal Font Style Override --- */
-        #lyrics-container.normal-font .lyric-line {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            font-size: 2.5rem;
-            letter-spacing: normal;
-            font-weight: 700;
+        /* ── Floating controls ── */
+        #floating-controls {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+            z-index: 20;
+        }
+
+        .float-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 24px;
+            padding: 6px 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .float-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+            line-height: 1;
+        }
+
+        .float-btn:hover { background: rgba(255,255,255,0.22); }
+
+        #font-size-label { font-size: 0.75rem; color: #aaa; min-width: 38px; text-align: center; }
+
+        .color-swatch {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.15s, border-color 0.15s;
+            flex-shrink: 0;
+        }
+
+        .color-swatch:hover { transform: scale(1.2); }
+        .color-swatch.selected { border-color: #fff; transform: scale(1.15); }
+
+        /* ── Fullscreen hint ── */
+        #fs-hint {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            font-size: 0.72rem;
+            color: rgba(255,255,255,0.25);
+            pointer-events: none;
+            z-index: 5;
+            transition: opacity 0.3s;
+        }
+
+        body:not(.fullscreen) #fs-hint { opacity: 0; }
+
+        /* ── Keyboard shortcuts toast ── */
+        #shortcuts-toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            border: 1px solid rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 16px 24px;
+            font-size: 0.82rem;
+            color: #ccc;
+            z-index: 200;
+            display: none;
+            line-height: 1.8;
+            min-width: 260px;
+        }
+
+        #shortcuts-toast.visible { display: block; }
+        #shortcuts-toast kbd {
+            background: #333;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-family: monospace;
+            color: #fff;
+            font-size: 0.85em;
         }
 
     </style>
 </head>
 <body>
 
-    <div class="controls">
-        <input type="text" id="yt-url" placeholder="Paste YouTube Link...">
-        <button id="load-yt-btn">Load Video</button>
+    <div id="controls-wrap">
+        <div class="controls">
+            <input type="text" id="yt-url" placeholder="Paste YouTube Link...">
+            <button id="load-yt-btn">Load Video</button>
 
-        <div id="video-info">
-            <div id="video-title" title="No video loaded">No video</div>
-            <span id="video-duration"></span>
-        </div>
+            <div id="video-info">
+                <div id="video-title" title="No video loaded">No video</div>
+                <span id="video-duration"></span>
+            </div>
 
-        <div class="search-group">
-            <input type="text" id="lyrics-search" placeholder="Search lrclib.net...">
-            <button id="search-btn">Search</button>
-            <div id="search-results"></div>
-        </div>
+            <div class="search-group">
+                <input type="text" id="lyrics-search" placeholder="Search lrclib.net...">
+                <button id="search-btn">Search</button>
+                <div id="search-results"></div>
+            </div>
 
-        <span style="color: #666; font-size: 0.9em; font-weight: bold;">OR</span>
+            <span style="color: #666; font-size: 0.9em; font-weight: bold;">OR</span>
 
-        <textarea id="lrc-raw" placeholder="Paste raw LRC text here..."></textarea>
+            <textarea id="lrc-raw" placeholder="Paste raw LRC text here..."></textarea>
 
-        <button id="play-btn" disabled>Play</button>
+            <button id="play-btn" disabled>Play</button>
 
-        <button id="font-toggle-btn">Toggle Font</button>
-
-        <div id="youtube-container">
-            <div id="player"></div>
-        </div>
-    </div>
-
-    <div class="lyrics-wrapper" id="lyrics-wrapper">
-        <div id="lyrics-container">
-            <div class="lyric-line" style="text-align: center; color: #b3b3b3; font-size: 2rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
-                Load a YouTube video to begin.
+            <div id="youtube-container">
+                <div id="player"></div>
             </div>
         </div>
     </div>
 
+    <div id="progress-wrap">
+        <div id="progress-bg"></div>
+        <div id="progress-bar"></div>
+        <span id="progress-time">0:00 / 0:00</span>
+    </div>
+
+    <div class="lyrics-wrapper" id="lyrics-wrapper">
+        <div id="lyrics-container">
+            <div class="lyric-line" style="text-align: center; color: #b3b3b3; font-size: 2rem;">
+                Load a YouTube video to begin.
+            </div>
+        </div>
+
+        <span id="fs-hint">Press F to exit fullscreen</span>
+
+        <div id="floating-controls">
+            <div class="float-group" id="color-group"></div>
+            <div class="float-group">
+                <button class="float-btn" id="font-dec-btn" title="Decrease font size (-)">−</button>
+                <span id="font-size-label">3.5rem</span>
+                <button class="float-btn" id="font-inc-btn" title="Increase font size (+)">+</button>
+            </div>
+            <div class="float-group">
+                <button class="float-btn" id="fullscreen-btn" title="Toggle fullscreen (F)">⛶</button>
+                <button class="float-btn" id="shortcuts-btn" title="Keyboard shortcuts (?)">?</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="shortcuts-toast">
+        <strong style="color:#fff; display:block; margin-bottom:6px;">Keyboard Shortcuts</strong>
+        <kbd>Space</kbd> Play / Pause<br>
+        <kbd>←</kbd> <kbd>→</kbd> Seek ±5s<br>
+        <kbd>+</kbd> <kbd>−</kbd> Font size<br>
+        <kbd>F</kbd> Fullscreen<br>
+        <kbd>?</kbd> This help
+    </div>
+
     <script>
+        // ── State ──────────────────────────────────────────────────────────────
         let player;
         let parsedLyrics = [];
         let syncInterval;
+        let progressInterval;
         let currentActiveIndex = -1;
 
-        document.getElementById('font-toggle-btn').addEventListener('click', () => {
-            const container = document.getElementById('lyrics-container');
-            container.classList.toggle('normal-font');
-        });
+        // ── Palette ────────────────────────────────────────────────────────────
+        const PALETTE = [
+            { color: '#d03c5a', label: 'Red' },
+            { color: '#4a9eff', label: 'Blue' },
+            { color: '#1db954', label: 'Green' },
+            { color: '#ff8c00', label: 'Amber' },
+            { color: '#9b59b6', label: 'Purple' },
+        ];
 
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        // ── Persist & restore settings ─────────────────────────────────────────
+        const FONT_SIZES = [1.5, 2, 2.5, 3, 3.5, 4, 5, 6];
+        let fontSizeIndex = parseInt(localStorage.getItem('fontSizeIndex') ?? '4');
+        let savedColor = localStorage.getItem('accentColor') || PALETTE[0].color;
 
-        function onYouTubeIframeAPIReady() {
-            console.log("YouTube API Ready");
+        function applyFontSize() {
+            const size = FONT_SIZES[fontSizeIndex];
+            document.documentElement.style.setProperty('--lyric-size', size + 'rem');
+            document.getElementById('font-size-label').textContent = size + 'rem';
+            localStorage.setItem('fontSizeIndex', fontSizeIndex);
         }
 
-        document.getElementById('load-yt-btn').addEventListener('click', () => {
+        function applyColor(color) {
+            document.documentElement.style.setProperty('--accent', color);
+            localStorage.setItem('accentColor', color);
+            document.querySelectorAll('.color-swatch').forEach(s => {
+                s.classList.toggle('selected', s.dataset.color === color);
+            });
+        }
+
+        applyFontSize();
+
+        // ── Build color swatches ───────────────────────────────────────────────
+        const colorGroup = document.getElementById('color-group');
+        PALETTE.forEach(({ color, label }) => {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            swatch.style.background = color;
+            swatch.dataset.color = color;
+            swatch.title = label;
+            swatch.addEventListener('click', () => applyColor(color));
+            colorGroup.appendChild(swatch);
+        });
+        applyColor(savedColor);
+
+        // ── Font size buttons ──────────────────────────────────────────────────
+        document.getElementById('font-inc-btn').addEventListener('click', () => {
+            if (fontSizeIndex < FONT_SIZES.length - 1) { fontSizeIndex++; applyFontSize(); }
+        });
+        document.getElementById('font-dec-btn').addEventListener('click', () => {
+            if (fontSizeIndex > 0) { fontSizeIndex--; applyFontSize(); }
+        });
+
+        // ── Fullscreen ─────────────────────────────────────────────────────────
+        function toggleFullscreen() {
+            document.body.classList.toggle('fullscreen');
+        }
+        document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
+
+        // ── Shortcuts toast ────────────────────────────────────────────────────
+        const toast = document.getElementById('shortcuts-toast');
+        let toastTimer;
+        function showShortcuts() {
+            clearTimeout(toastTimer);
+            toast.classList.add('visible');
+            toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
+        }
+        document.getElementById('shortcuts-btn').addEventListener('click', showShortcuts);
+
+        // ── Keyboard shortcuts ─────────────────────────────────────────────────
+        document.addEventListener('keydown', (e) => {
+            const tag = document.activeElement.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+            switch (e.key) {
+                case ' ':
+                    e.preventDefault();
+                    if (!player) return;
+                    if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
+                    else player.playVideo();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    if (player && player.seekTo) player.seekTo(player.getCurrentTime() + 5, true);
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    if (player && player.seekTo) player.seekTo(Math.max(0, player.getCurrentTime() - 5), true);
+                    break;
+                case '+': case '=':
+                    if (fontSizeIndex < FONT_SIZES.length - 1) { fontSizeIndex++; applyFontSize(); }
+                    break;
+                case '-': case '_':
+                    if (fontSizeIndex > 0) { fontSizeIndex--; applyFontSize(); }
+                    break;
+                case 'f': case 'F':
+                    toggleFullscreen();
+                    break;
+                case '?':
+                    showShortcuts();
+                    break;
+            }
+        });
+
+        // ── Progress bar ───────────────────────────────────────────────────────
+        const progressBar = document.getElementById('progress-bar');
+        const progressTime = document.getElementById('progress-time');
+        const progressWrap = document.getElementById('progress-wrap');
+
+        function updateProgress() {
+            if (!player || !player.getCurrentTime) return;
+            const cur = player.getCurrentTime();
+            const dur = player.getDuration();
+            if (!dur) return;
+            const pct = (cur / dur) * 100;
+            progressBar.style.width = pct + '%';
+            progressTime.textContent = `${formatDuration(cur)} / ${formatDuration(dur)}`;
+        }
+
+        progressWrap.addEventListener('click', (e) => {
+            if (!player || !player.getDuration) return;
+            const rect = progressWrap.getBoundingClientRect();
+            const ratio = (e.clientX - rect.left) / rect.width;
+            player.seekTo(ratio * player.getDuration(), true);
+        });
+
+        // ── YouTube API ────────────────────────────────────────────────────────
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.getElementsByTagName('script')[0].parentNode.insertBefore(tag, document.getElementsByTagName('script')[0]);
+
+        function onYouTubeIframeAPIReady() {}
+
+        document.getElementById('load-yt-btn').addEventListener('click', loadVideo);
+        document.getElementById('yt-url').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadVideo(); });
+
+        function loadVideo() {
             const ytUrl = document.getElementById('yt-url').value;
             const videoId = extractVideoID(ytUrl);
-
-            if (!videoId) {
-                alert("Invalid YouTube URL.");
-                return;
-            }
+            if (!videoId) { alert("Invalid YouTube URL."); return; }
 
             document.getElementById('video-title').innerText = "Loading...";
             document.getElementById('video-duration').innerText = "";
@@ -281,110 +545,89 @@
 
             if (!player) {
                 player = new YT.Player('player', {
-                    height: '56',
-                    width: '200',
-                    videoId: videoId,
-                    events: {
-                        'onReady': onPlayerReady,
-                        'onStateChange': onPlayerStateChange
-                    }
+                    height: '56', width: '200', videoId,
+                    events: { onReady: onPlayerReady, onStateChange: onPlayerStateChange }
                 });
             } else {
                 player.cueVideoById(videoId);
             }
-        });
+        }
 
         document.getElementById('play-btn').addEventListener('click', () => {
             if (!player) return;
-            const state = player.getPlayerState();
-            if (state === YT.PlayerState.PLAYING) {
-                player.pauseVideo();
-            } else {
-                player.playVideo();
-            }
+            if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
+            else player.playVideo();
         });
 
-        function onPlayerReady(event) {
-            updateVideoInfo();
-        }
+        function onPlayerReady() { updateVideoInfo(); }
 
         function onPlayerStateChange(event) {
             const playBtn = document.getElementById('play-btn');
-
             if (event.data === YT.PlayerState.PLAYING) {
                 syncInterval = setInterval(syncLyrics, 100);
+                progressInterval = setInterval(updateProgress, 250);
                 playBtn.innerText = "Pause";
             } else {
                 clearInterval(syncInterval);
+                clearInterval(progressInterval);
                 playBtn.innerText = "Play";
+                updateProgress();
             }
-
             updateVideoInfo();
         }
 
+        let lastTitle = '';
         function updateVideoInfo() {
-            if (player && player.getVideoData) {
-                const data = player.getVideoData();
-                if (data && data.title) {
-                    const titleText = data.title;
-                    const titleEl = document.getElementById('video-title');
-                    const durationEl = document.getElementById('video-duration');
+            if (!player || !player.getVideoData) return;
+            const data = player.getVideoData();
+            if (!data || !data.title) return;
 
-                    if (titleEl.innerText !== titleText) {
-                        titleEl.innerText = titleText;
-                        titleEl.title = titleText;
-                        document.getElementById('play-btn').disabled = false;
+            const titleEl = document.getElementById('video-title');
+            const durationEl = document.getElementById('video-duration');
 
-                        const searchInput = document.getElementById('lyrics-search');
-                        if (!searchInput.value) {
-                            searchInput.value = cleanTitleForSearch(titleText);
-                        }
-                    }
+            if (data.title !== lastTitle) {
+                lastTitle = data.title;
+                titleEl.innerText = data.title;
+                titleEl.title = data.title;
+                document.getElementById('play-btn').disabled = false;
 
-                    if (player.getDuration && player.getDuration() > 0) {
-                        const durationText = formatDuration(player.getDuration());
-                        if (durationEl.innerText !== ` • ${durationText}`) {
-                            durationEl.innerText = ` • ${durationText}`;
-                        }
-                    }
-                }
+                const searchInput = document.getElementById('lyrics-search');
+                const cleaned = cleanTitleForSearch(data.title);
+                searchInput.value = cleaned;
+                triggerSearch(cleaned);
+            }
+
+            if (player.getDuration && player.getDuration() > 0) {
+                durationEl.innerText = ` • ${formatDuration(player.getDuration())}`;
             }
         }
 
-        function extractVideoID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
+        // ── Search ─────────────────────────────────────────────────────────────
+        let autoSearchTimer;
+        function triggerSearch(query) {
+            clearTimeout(autoSearchTimer);
+            autoSearchTimer = setTimeout(() => doSearch(query), 600);
         }
 
-        function cleanTitleForSearch(title) {
-            return title.replace(/\[.*?\]|\(.*?\)|\{.*?\}/g, '')
-                        .replace(/official( music)? video|lyric video|audio|hd|4k/gi, '')
-                        .trim();
-        }
+        document.getElementById('search-btn').addEventListener('click', () => {
+            doSearch(document.getElementById('lyrics-search').value.trim());
+        });
 
-        function formatDuration(totalSeconds) {
-            if (!totalSeconds) return "--:--";
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = Math.floor(totalSeconds % 60);
-            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
+        document.getElementById('lyrics-search').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') doSearch(document.getElementById('lyrics-search').value.trim());
+        });
 
-        document.getElementById('search-btn').addEventListener('click', async () => {
-            const query = document.getElementById('lyrics-search').value.trim();
-            const resultsBox = document.getElementById('search-results');
-
+        async function doSearch(query) {
             if (!query) return;
-
+            const resultsBox = document.getElementById('search-results');
             resultsBox.innerHTML = '<div class="result-item" style="color:#b3b3b3;">Searching...</div>';
             resultsBox.classList.add('active');
 
             try {
                 const response = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(query)}`);
                 const data = await response.json();
-
                 resultsBox.innerHTML = '';
-                const validTracks = data.filter(track => track.syncedLyrics);
+                const validTracks = data.filter(t => t.syncedLyrics);
 
                 if (validTracks.length === 0) {
                     resultsBox.innerHTML = '<div class="result-item" style="color:#b3b3b3;">No synced lyrics found.</div>';
@@ -394,16 +637,13 @@
                 validTracks.forEach(track => {
                     const div = document.createElement('div');
                     div.className = 'result-item';
-                    const timeString = formatDuration(track.duration);
-
                     div.innerHTML = `
                         <div class="result-header">
                             <span class="result-title">${track.trackName}</span>
-                            <span class="result-duration">${timeString}</span>
+                            <span class="result-duration">${formatDuration(track.duration)}</span>
                         </div>
                         <div class="result-artist">${track.artistName} • ${track.albumName}</div>
                     `;
-
                     div.addEventListener('click', () => {
                         parsedLyrics = parseLRC(track.syncedLyrics);
                         renderLyrics(parsedLyrics);
@@ -411,50 +651,65 @@
                         document.getElementById('lyrics-search').value = `${track.artistName} - ${track.trackName}`;
                         document.getElementById('lrc-raw').value = '';
                     });
-
                     resultsBox.appendChild(div);
                 });
-
-            } catch (error) {
-                console.error("API Error:", error);
+            } catch {
                 resultsBox.innerHTML = '<div class="result-item" style="color:red;">Error fetching lyrics.</div>';
             }
-        });
+        }
 
         document.addEventListener('click', (e) => {
-            const searchGroup = document.querySelector('.search-group');
-            if (!searchGroup.contains(e.target)) {
+            if (!document.querySelector('.search-group').contains(e.target))
                 document.getElementById('search-results').classList.remove('active');
-            }
         });
 
         document.getElementById('lrc-raw').addEventListener('input', (e) => {
             const text = e.target.value.trim();
             if (!text) return;
-
             parsedLyrics = parseLRC(text);
             renderLyrics(parsedLyrics);
             document.getElementById('lyrics-search').value = '';
         });
 
+        // ── Helpers ────────────────────────────────────────────────────────────
+        function extractVideoID(url) {
+            const m = url.match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+            return (m && m[2].length === 11) ? m[2] : null;
+        }
+
+        const NOISE_WORDS = [
+            'official', 'music', 'video', 'lyric', 'lyrics', 'audio', 'karaoke',
+            'instrumental', 'acoustic', 'live', 'cover', 'remix', 'remaster',
+            'remastered', 'visualizer', 'explicit', 'clean', 'extended', 'version',
+            'hd', '4k', 'hq', 'full', 'album', 'stream', 'ft', 'feat',
+        ];
+
+        function cleanTitleForSearch(title) {
+            return title
+                .replace(/\[.*?\]|\(.*?\)|\{.*?\}/g, '')
+                .replace(new RegExp(`\\b(${NOISE_WORDS.join('|')})\\b`, 'gi'), '')
+                .replace(/[-–|]+/g, ' ')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+        }
+
+        function formatDuration(s) {
+            if (!s) return '--:--';
+            const m = Math.floor(s / 60);
+            return `${m}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+        }
+
         function parseLRC(lrcText) {
-            const lines = lrcText.split('\n');
-            const lyrics = [];
-            const timeRegEx = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
-
-            lines.forEach(line => {
-                const match = line.match(timeRegEx);
-                if (match) {
-                    const minutes = parseInt(match[1]);
-                    const seconds = parseInt(match[2]);
-                    const milliseconds = parseInt(match[3]) * (match[3].length === 2 ? 10 : 1);
-                    const timeInSeconds = (minutes * 60) + seconds + (milliseconds / 1000);
-                    const text = line.replace(timeRegEx, '').trim();
-
-                    if (text) lyrics.push({ time: timeInSeconds, text: text });
-                }
-            });
-            return lyrics;
+            const timeRe = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+            return lrcText.split('\n').reduce((acc, line) => {
+                const m = line.match(timeRe);
+                if (!m) return acc;
+                const ms = parseInt(m[3]) * (m[3].length === 2 ? 10 : 1);
+                const time = parseInt(m[1]) * 60 + parseInt(m[2]) + ms / 1000;
+                const text = line.replace(timeRe, '').trim();
+                if (text) acc.push({ time, text });
+                return acc;
+            }, []);
         }
 
         function renderLyrics(lyrics) {
@@ -462,55 +717,35 @@
             container.innerHTML = '';
             currentActiveIndex = -1;
 
-            if (lyrics.length === 0) {
-                container.innerHTML = '<div class="lyric-line" style="text-align: center; color: #b3b3b3;">No valid timestamps found.</div>';
+            if (!lyrics.length) {
+                container.innerHTML = '<div class="lyric-line" style="text-align:center;color:#b3b3b3;">No valid timestamps found.</div>';
                 return;
             }
 
-            lyrics.forEach((lyric, index) => {
+            lyrics.forEach((lyric, i) => {
                 const div = document.createElement('div');
                 div.className = 'lyric-line';
-                div.id = `lyric-${index}`;
+                div.id = `lyric-${i}`;
                 div.innerText = lyric.text;
-
-                div.addEventListener('click', () => {
-                    if (player && player.seekTo) player.seekTo(lyric.time);
-                });
-
+                div.addEventListener('click', () => { if (player?.seekTo) player.seekTo(lyric.time, true); });
                 container.appendChild(div);
             });
         }
 
         function syncLyrics() {
-            if (!player || !player.getCurrentTime || parsedLyrics.length === 0) return;
-
-            const currentTime = player.getCurrentTime();
-            let newActiveIndex = -1;
-
+            if (!player?.getCurrentTime || !parsedLyrics.length) return;
+            const t = player.getCurrentTime();
+            let idx = -1;
             for (let i = 0; i < parsedLyrics.length; i++) {
-                if (currentTime >= parsedLyrics[i].time) {
-                    newActiveIndex = i;
-                } else {
-                    break;
-                }
+                if (t >= parsedLyrics[i].time) idx = i; else break;
             }
-
-            if (newActiveIndex !== currentActiveIndex && newActiveIndex !== -1) {
-                if (currentActiveIndex !== -1) {
-                    const oldLine = document.getElementById(`lyric-${currentActiveIndex}`);
-                    if (oldLine) oldLine.classList.remove('active');
-                }
-
-                const newLine = document.getElementById(`lyric-${newActiveIndex}`);
-                if (newLine) {
-                    newLine.classList.add('active');
-                    newLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-
-                currentActiveIndex = newActiveIndex;
-            }
+            if (idx === currentActiveIndex || idx === -1) return;
+            if (currentActiveIndex !== -1)
+                document.getElementById(`lyric-${currentActiveIndex}`)?.classList.remove('active');
+            const el = document.getElementById(`lyric-${idx}`);
+            if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            currentActiveIndex = idx;
         }
     </script>
 </body>
 </html>
-
