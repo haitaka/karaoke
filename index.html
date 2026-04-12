@@ -29,6 +29,8 @@
             transition: max-height 0.3s ease, opacity 0.3s ease;
             max-height: 200px;
             overflow: visible;
+            position: relative;
+            z-index: 50;
         }
 
         body.fullscreen #controls-wrap {
@@ -167,8 +169,12 @@
         /* phase-play: playback active */
         body.phase-play #yt-url               { width: 160px; }
         body.phase-play #lyrics-search        { width: 180px; }
-        body.phase-play #yt-search-group      { opacity: 0.5; }
-        body.phase-play #lyrics-search-group  { opacity: 0.5; }
+        body.phase-play #yt-search-group      { opacity: 0.5; transition: opacity 0.2s; }
+        body.phase-play #lyrics-search-group  { opacity: 0.5; transition: opacity 0.2s; }
+        body.phase-play #yt-search-group:hover,
+        body.phase-play #yt-search-group:focus-within,
+        body.phase-play #lyrics-search-group:hover,
+        body.phase-play #lyrics-search-group:focus-within { opacity: 1; }
 
         /* ── Transport (play button + progress bar) ── */
         #transport {
