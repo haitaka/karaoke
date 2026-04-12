@@ -108,7 +108,7 @@
 
         .search-group { position: relative; display: flex; gap: 10px; }
 
-        #search-results {
+        #yt-results, #search-results {
             position: absolute;
             top: 100%;
             left: 0;
@@ -124,7 +124,21 @@
             white-space: normal;
         }
 
-        #search-results.active { display: block; }
+        #yt-results.active, #search-results.active { display: block; }
+
+        .yt-result-thumb {
+            width: 80px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .yt-result-info { display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+        .yt-result-title { font-weight: bold; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .yt-result-meta { font-size: 0.8rem; color: #b3b3b3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .result-item.yt-item { flex-direction: row; align-items: center; gap: 10px; }
 
         .result-item {
             padding: 12px;
@@ -327,8 +341,10 @@
 
     <div id="controls-wrap">
         <div class="controls">
-            <input type="text" id="yt-url" placeholder="Paste YouTube Link...">
-            <button id="load-yt-btn">Load Video</button>
+            <div class="search-group" id="yt-search-group">
+                <input type="text" id="yt-url" placeholder="Search or paste YouTube URL…" style="width:220px">
+                <div id="yt-results"></div>
+            </div>
 
             <div id="video-info">
                 <div id="video-title" title="No video loaded">No video</div>
@@ -525,24 +541,106 @@
         });
 
         // ── YouTube API ────────────────────────────────────────────────────────
+        // YT_API_KEY is loaded from config.js (not tracked in git)
+
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         document.getElementsByTagName('script')[0].parentNode.insertBefore(tag, document.getElementsByTagName('script')[0]);
 
         function onYouTubeIframeAPIReady() {}
 
-        document.getElementById('load-yt-btn').addEventListener('click', loadVideo);
-        document.getElementById('yt-url').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadVideo(); });
+        // Video search
+        const ytInput = document.getElementById('yt-url');
+        const ytResultsBox = document.getElementById('yt-results');
+        let ytSearchTimer;
 
-        function loadVideo() {
-            const ytUrl = document.getElementById('yt-url').value;
-            const videoId = extractVideoID(ytUrl);
-            if (!videoId) { alert("Invalid YouTube URL."); return; }
+        ytInput.addEventListener('input', () => {
+            const val = ytInput.value.trim();
+            clearTimeout(ytSearchTimer);
+            if (!val) { ytResultsBox.classList.remove('active'); return; }
+            if (extractVideoID(val)) {
+                ytResultsBox.classList.remove('active');
+                loadVideoById(extractVideoID(val));
+                return;
+            }
+            ytSearchTimer = setTimeout(() => searchYouTube(val), 500);
+        });
 
+        ytInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                clearTimeout(ytSearchTimer);
+                const val = ytInput.value.trim();
+                if (extractVideoID(val)) loadVideoById(extractVideoID(val));
+                else searchYouTube(val);
+            }
+        });
+
+        async function searchYouTube(query) {
+            ytResultsBox.innerHTML = '<div class="result-item" style="color:#b3b3b3;">Searching…</div>';
+            ytResultsBox.classList.add('active');
+            try {
+                const searchRes = await fetch(
+                    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=8&q=${encodeURIComponent(query)}&key=${YT_API_KEY}`
+                );
+                const searchData = await searchRes.json();
+                if (!searchData.items?.length) {
+                    ytResultsBox.innerHTML = '<div class="result-item" style="color:#b3b3b3;">No results.</div>';
+                    return;
+                }
+
+                const ids = searchData.items.map(i => i.id.videoId).join(',');
+                const detailRes = await fetch(
+                    `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${ids}&key=${YT_API_KEY}`
+                );
+                const detailData = await detailRes.json();
+                const durations = {};
+                detailData.items?.forEach(v => { durations[v.id] = parseISO8601(v.contentDetails.duration); });
+
+                ytResultsBox.innerHTML = '';
+                searchData.items.forEach(item => {
+                    const { videoId } = item.id;
+                    const { title, channelTitle, thumbnails } = item.snippet;
+                    const thumb = thumbnails?.default?.url || '';
+                    const dur = durations[videoId] ? formatDuration(durations[videoId]) : '';
+
+                    const div = document.createElement('div');
+                    div.className = 'result-item yt-item';
+                    div.innerHTML = `
+                        <img class="yt-result-thumb" src="${thumb}" alt="">
+                        <div class="yt-result-info">
+                            <div class="yt-result-title">${title}</div>
+                            <div class="yt-result-meta">${channelTitle}${dur ? ' • ' + dur : ''}</div>
+                        </div>
+                    `;
+                    div.addEventListener('click', () => {
+                        ytResultsBox.classList.remove('active');
+                        ytInput.value = title;
+                        loadVideoById(videoId);
+                    });
+                    ytResultsBox.appendChild(div);
+                });
+            } catch (err) {
+                console.error(err);
+                ytResultsBox.innerHTML = '<div class="result-item" style="color:red;">Search failed.</div>';
+            }
+        }
+
+        function parseISO8601(str) {
+            const m = str.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+            if (!m) return 0;
+            return (parseInt(m[1] || 0) * 3600) + (parseInt(m[2] || 0) * 60) + parseInt(m[3] || 0);
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('yt-search-group').contains(e.target))
+                ytResultsBox.classList.remove('active');
+        });
+
+        function loadVideoById(videoId) {
             document.getElementById('video-title').innerText = "Loading...";
             document.getElementById('video-duration').innerText = "";
             document.getElementById('play-btn').disabled = true;
-
+            lastTitle = '';
             if (!player) {
                 player = new YT.Player('player', {
                     height: '56', width: '200', videoId,
