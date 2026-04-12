@@ -628,8 +628,10 @@
                     `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${n}&q=${encodeURIComponent(q)}&key=${YT_API_KEY}`
                 ).then(r => r.json());
 
+                const alreadyInstr = /\b(instrumental|karaoke|backing track|no vocals?|playback)\b/i.test(query);
+
                 const [instrData, allData] = await Promise.all([
-                    apiSearch(query + ' instrumental', 3),
+                    alreadyInstr ? Promise.resolve({ items: [] }) : apiSearch(query + ' instrumental', 3),
                     apiSearch(query, 8),
                 ]);
 
