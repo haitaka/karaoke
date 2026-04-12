@@ -802,7 +802,7 @@
         }
 
         document.addEventListener('click', (e) => {
-            if (!document.querySelector('.search-group').contains(e.target))
+            if (!document.getElementById('lyrics-search-group').contains(e.target))
                 document.getElementById('search-results').classList.remove('active');
         });
 
