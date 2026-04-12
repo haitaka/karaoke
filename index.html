@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sempiternal Lyrics Player</title>
+    <style>
+
+        @font-face {
+            font-family: 'FaceYourFears';
+            src: url('FaceYourFears.ttf') format('truetype');
+        }
+
+        /* --- Main CSS --- */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Controls Section - Single Row */
+        .controls {
+            background-color: #000000;
+            padding: 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            border-bottom: 1px solid #282828;
+            z-index: 10;
+            flex-wrap: nowrap;
+        }
+
+        .controls input[type="text"],
+        .controls textarea {
+            padding: 0 10px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            background: #242424;
+            color: white;
+            width: 180px;
+            height: 38px;
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+            line-height: 38px;
+        }
+
+        .controls textarea {
+            resize: none;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .controls textarea:focus {
+            outline: 2px solid #d03c5a;
+            outline-offset: -2px;
+        }
+
+        .controls button {
+            background-color: #d03c5a;
+            color: white;
+            border: none;
+            height: 38px;
+            padding: 0 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .controls button:hover:not(:disabled) {
+            background-color: #e64263;
+            transform: scale(1.05);
+        }
+
+        .controls button:disabled {
+            background-color: #555;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #font-toggle-btn {
+            background-color: #242424;
+            border: 1px solid #d03c5a;
+            color: #d03c5a;
+        }
+
+        #font-toggle-btn:hover {
+            background-color: #d03c5a;
+            color: white;
+        }
+
+        #video-info { display: flex; align-items: center; gap: 12px; }
+
+        #video-title {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #fff;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #video-duration {
+            color: #d03c5a;
+            font-size: 0.9em;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .search-group { position: relative; display: flex; gap: 10px; }
+
+        #search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 5px;
+            background: #282828;
+            width: 350px;
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 6px;
+            z-index: 100;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.7);
+            display: none;
+            white-space: normal;
+        }
+
+        #search-results.active { display: block; }
+
+        .result-item {
+            padding: 12px;
+            border-bottom: 1px solid #3e3e3e;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .result-item:hover { background: #3e3e3e; }
+        .result-header { display: flex; justify-content: space-between; align-items: center; }
+        .result-title { font-weight: bold; color: #fff; }
+        .result-duration { font-size: 0.85rem; color: #d03c5a; font-weight: bold; }
+        .result-artist { font-size: 0.85rem; color: #b3b3b3; }
+
+        #youtube-container {
+            width: 200px;
+            height: 56px;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .lyrics-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            padding: 0 10%;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .lyrics-wrapper::-webkit-scrollbar { display: none; }
+
+        #lyrics-container {
+            padding: 40vh 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- Default Metal Font Style --- */
+        .lyric-line {
+            /* TO USE YOUR OWN FONT: Change 'Eater' to 'FaceYourFears' */
+            font-family: 'FaceYourFears', cursive;
+            font-size: 3.5rem;
+            letter-spacing: 2px;
+            color: #6a6a6a;
+            transition: color 0.3s ease, transform 0.3s ease, text-shadow 0.3s ease;
+            cursor: pointer;
+            transform-origin: left center;
+        }
+
+        .lyric-line:hover { color: #b3b3b3; }
+
+        .lyric-line.active {
+            color: #ffffff;
+            transform: scale(1.05);
+            text-shadow: 0 0 3px rgba(208, 60, 90, 0.8), 0 0 3px rgba(208, 60, 90, 0.5);
+        }
+
+        /* --- Normal Font Style Override --- */
+        #lyrics-container.normal-font .lyric-line {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 2.5rem;
+            letter-spacing: normal;
+            font-weight: 700;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <input type="text" id="yt-url" placeholder="Paste YouTube Link...">
+        <button id="load-yt-btn">Load Video</button>
+
+        <div id="video-info">
+            <div id="video-title" title="No video loaded">No video</div>
+            <span id="video-duration"></span>
+        </div>
+
+        <div class="search-group">
+            <input type="text" id="lyrics-search" placeholder="Search lrclib.net...">
+            <button id="search-btn">Search</button>
+            <div id="search-results"></div>
+        </div>
+
+        <span style="color: #666; font-size: 0.9em; font-weight: bold;">OR</span>
+
+        <textarea id="lrc-raw" placeholder="Paste raw LRC text here..."></textarea>
+
+        <button id="play-btn" disabled>Play</button>
+
+        <button id="font-toggle-btn">Toggle Font</button>
+
+        <div id="youtube-container">
+            <div id="player"></div>
+        </div>
+    </div>
+
+    <div class="lyrics-wrapper" id="lyrics-wrapper">
+        <div id="lyrics-container">
+            <div class="lyric-line" style="text-align: center; color: #b3b3b3; font-size: 2rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                Load a YouTube video to begin.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let player;
+        let parsedLyrics = [];
+        let syncInterval;
+        let currentActiveIndex = -1;
+
+        document.getElementById('font-toggle-btn').addEventListener('click', () => {
+            const container = document.getElementById('lyrics-container');
+            container.classList.toggle('normal-font');
+        });
+
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function onYouTubeIframeAPIReady() {
+            console.log("YouTube API Ready");
+        }
+
+        document.getElementById('load-yt-btn').addEventListener('click', () => {
+            const ytUrl = document.getElementById('yt-url').value;
+            const videoId = extractVideoID(ytUrl);
+
+            if (!videoId) {
+                alert("Invalid YouTube URL.");
+                return;
+            }
+
+            document.getElementById('video-title').innerText = "Loading...";
+            document.getElementById('video-duration').innerText = "";
+            document.getElementById('play-btn').disabled = true;
+
+            if (!player) {
+                player = new YT.Player('player', {
+                    height: '56',
+                    width: '200',
+                    videoId: videoId,
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange
+                    }
+                });
+            } else {
+                player.cueVideoById(videoId);
+            }
+        });
+
+        document.getElementById('play-btn').addEventListener('click', () => {
+            if (!player) return;
+            const state = player.getPlayerState();
+            if (state === YT.PlayerState.PLAYING) {
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
+        });
+
+        function onPlayerReady(event) {
+            updateVideoInfo();
+        }
+
+        function onPlayerStateChange(event) {
+            const playBtn = document.getElementById('play-btn');
+
+            if (event.data === YT.PlayerState.PLAYING) {
+                syncInterval = setInterval(syncLyrics, 100);
+                playBtn.innerText = "Pause";
+            } else {
+                clearInterval(syncInterval);
+                playBtn.innerText = "Play";
+            }
+
+            updateVideoInfo();
+        }
+
+        function updateVideoInfo() {
+            if (player && player.getVideoData) {
+                const data = player.getVideoData();
+                if (data && data.title) {
+                    const titleText = data.title;
+                    const titleEl = document.getElementById('video-title');
+                    const durationEl = document.getElementById('video-duration');
+
+                    if (titleEl.innerText !== titleText) {
+                        titleEl.innerText = titleText;
+                        titleEl.title = titleText;
+                        document.getElementById('play-btn').disabled = false;
+
+                        const searchInput = document.getElementById('lyrics-search');
+                        if (!searchInput.value) {
+                            searchInput.value = cleanTitleForSearch(titleText);
+                        }
+                    }
+
+                    if (player.getDuration && player.getDuration() > 0) {
+                        const durationText = formatDuration(player.getDuration());
+                        if (durationEl.innerText !== ` • ${durationText}`) {
+                            durationEl.innerText = ` • ${durationText}`;
+                        }
+                    }
+                }
+            }
+        }
+
+        function extractVideoID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function cleanTitleForSearch(title) {
+            return title.replace(/\[.*?\]|\(.*?\)|\{.*?\}/g, '')
+                        .replace(/official( music)? video|lyric video|audio|hd|4k/gi, '')
+                        .trim();
+        }
+
+        function formatDuration(totalSeconds) {
+            if (!totalSeconds) return "--:--";
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        document.getElementById('search-btn').addEventListener('click', async () => {
+            const query = document.getElementById('lyrics-search').value.trim();
+            const resultsBox = document.getElementById('search-results');
+
+            if (!query) return;
+
+            resultsBox.innerHTML = '<div class="result-item" style="color:#b3b3b3;">Searching...</div>';
+            resultsBox.classList.add('active');
+
+            try {
+                const response = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                resultsBox.innerHTML = '';
+                const validTracks = data.filter(track => track.syncedLyrics);
+
+                if (validTracks.length === 0) {
+                    resultsBox.innerHTML = '<div class="result-item" style="color:#b3b3b3;">No synced lyrics found.</div>';
+                    return;
+                }
+
+                validTracks.forEach(track => {
+                    const div = document.createElement('div');
+                    div.className = 'result-item';
+                    const timeString = formatDuration(track.duration);
+
+                    div.innerHTML = `
+                        <div class="result-header">
+                            <span class="result-title">${track.trackName}</span>
+                            <span class="result-duration">${timeString}</span>
+                        </div>
+                        <div class="result-artist">${track.artistName} • ${track.albumName}</div>
+                    `;
+
+                    div.addEventListener('click', () => {
+                        parsedLyrics = parseLRC(track.syncedLyrics);
+                        renderLyrics(parsedLyrics);
+                        resultsBox.classList.remove('active');
+                        document.getElementById('lyrics-search').value = `${track.artistName} - ${track.trackName}`;
+                        document.getElementById('lrc-raw').value = '';
+                    });
+
+                    resultsBox.appendChild(div);
+                });
+
+            } catch (error) {
+                console.error("API Error:", error);
+                resultsBox.innerHTML = '<div class="result-item" style="color:red;">Error fetching lyrics.</div>';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const searchGroup = document.querySelector('.search-group');
+            if (!searchGroup.contains(e.target)) {
+                document.getElementById('search-results').classList.remove('active');
+            }
+        });
+
+        document.getElementById('lrc-raw').addEventListener('input', (e) => {
+            const text = e.target.value.trim();
+            if (!text) return;
+
+            parsedLyrics = parseLRC(text);
+            renderLyrics(parsedLyrics);
+            document.getElementById('lyrics-search').value = '';
+        });
+
+        function parseLRC(lrcText) {
+            const lines = lrcText.split('\n');
+            const lyrics = [];
+            const timeRegEx = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+
+            lines.forEach(line => {
+                const match = line.match(timeRegEx);
+                if (match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    const milliseconds = parseInt(match[3]) * (match[3].length === 2 ? 10 : 1);
+                    const timeInSeconds = (minutes * 60) + seconds + (milliseconds / 1000);
+                    const text = line.replace(timeRegEx, '').trim();
+
+                    if (text) lyrics.push({ time: timeInSeconds, text: text });
+                }
+            });
+            return lyrics;
+        }
+
+        function renderLyrics(lyrics) {
+            const container = document.getElementById('lyrics-container');
+            container.innerHTML = '';
+            currentActiveIndex = -1;
+
+            if (lyrics.length === 0) {
+                container.innerHTML = '<div class="lyric-line" style="text-align: center; color: #b3b3b3;">No valid timestamps found.</div>';
+                return;
+            }
+
+            lyrics.forEach((lyric, index) => {
+                const div = document.createElement('div');
+                div.className = 'lyric-line';
+                div.id = `lyric-${index}`;
+                div.innerText = lyric.text;
+
+                div.addEventListener('click', () => {
+                    if (player && player.seekTo) player.seekTo(lyric.time);
+                });
+
+                container.appendChild(div);
+            });
+        }
+
+        function syncLyrics() {
+            if (!player || !player.getCurrentTime || parsedLyrics.length === 0) return;
+
+            const currentTime = player.getCurrentTime();
+            let newActiveIndex = -1;
+
+            for (let i = 0; i < parsedLyrics.length; i++) {
+                if (currentTime >= parsedLyrics[i].time) {
+                    newActiveIndex = i;
+                } else {
+                    break;
+                }
+            }
+
+            if (newActiveIndex !== currentActiveIndex && newActiveIndex !== -1) {
+                if (currentActiveIndex !== -1) {
+                    const oldLine = document.getElementById(`lyric-${currentActiveIndex}`);
+                    if (oldLine) oldLine.classList.remove('active');
+                }
+
+                const newLine = document.getElementById(`lyric-${newActiveIndex}`);
+                if (newLine) {
+                    newLine.classList.add('active');
+                    newLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                currentActiveIndex = newActiveIndex;
+            }
+        }
+    </script>
+</body>
+</html>
+
