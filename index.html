@@ -87,17 +87,7 @@
             transform: none;
         }
 
-        #video-info { display: flex; align-items: center; gap: 12px; }
-
-        #video-title {
-            font-size: 1rem;
-            font-weight: bold;
-            color: #fff;
-            max-width: 150px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+        #video-info { display: flex; align-items: center; }
 
         #video-duration { color: var(--accent); font-size: 0.9em; font-weight: bold; white-space: nowrap; }
 
@@ -385,7 +375,6 @@
             </div>
 
             <div id="video-info">
-                <div id="video-title" title="No video loaded">No video</div>
                 <span id="video-duration"></span>
             </div>
 
@@ -712,7 +701,6 @@
         });
 
         function loadVideoById(videoId) {
-            document.getElementById('video-title').innerText = "Loading...";
             document.getElementById('video-duration').innerText = "";
             document.getElementById('play-btn').disabled = true;
             lastTitle = '';
@@ -756,13 +744,10 @@
             const data = player.getVideoData();
             if (!data || !data.title) return;
 
-            const titleEl = document.getElementById('video-title');
             const durationEl = document.getElementById('video-duration');
 
             if (data.title !== lastTitle) {
                 lastTitle = data.title;
-                titleEl.innerText = data.title;
-                titleEl.title = data.title;
                 document.getElementById('play-btn').disabled = false;
 
                 const searchInput = document.getElementById('lyrics-search');
