@@ -49,8 +49,7 @@
             flex-wrap: nowrap;
         }
 
-        .controls input[type="text"],
-        .controls textarea {
+        .controls input[type="text"] {
             padding: 0 10px;
             border-radius: 4px;
             border: 1px solid #333;
@@ -62,15 +61,8 @@
             font-size: 14px;
             box-sizing: border-box;
             line-height: 38px;
+            transition: width 0.4s ease, border-color 0.3s, opacity 0.3s;
         }
-
-        .controls textarea {
-            resize: none;
-            overflow: hidden;
-            white-space: nowrap;
-        }
-
-        .controls textarea:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
 
         .controls button {
             background-color: var(--accent);
@@ -159,6 +151,28 @@
         .result-artist { font-size: 0.85rem; color: #b3b3b3; }
 
         #youtube-container { width: 200px; height: 56px; margin-left: auto; flex-shrink: 0; }
+
+        /* ── Phase-based focus ── */
+        .search-group, #video-info, #play-btn {
+            transition: opacity 0.35s ease;
+        }
+
+        /* phase-video: video search active */
+        body.phase-video #yt-url              { width: 320px; border-color: var(--accent); }
+        body.phase-video #lyrics-search-group { opacity: 0.35; }
+        body.phase-video #lyrics-search       { width: 140px; }
+        body.phase-video #play-btn            { opacity: 0.35; }
+
+        /* phase-lyrics: lyrics search active */
+        body.phase-lyrics #yt-url             { width: 160px; }
+        body.phase-lyrics #lyrics-search      { width: 320px; border-color: var(--accent); }
+        body.phase-lyrics #play-btn           { opacity: 0.35; }
+
+        /* phase-play: playback active */
+        body.phase-play #yt-url               { width: 140px; }
+        body.phase-play #lyrics-search        { width: 160px; }
+        body.phase-play #yt-search-group      { opacity: 0.5; }
+        body.phase-play #lyrics-search-group  { opacity: 0.5; }
 
         /* ── Progress bar ── */
         #progress-wrap {
@@ -353,15 +367,11 @@
                 <span id="video-duration"></span>
             </div>
 
-            <div class="search-group">
+            <div class="search-group" id="lyrics-search-group">
                 <input type="text" id="lyrics-search" placeholder="Search lrclib.net...">
                 <button id="search-btn">Search</button>
                 <div id="search-results"></div>
             </div>
-
-            <span style="color: #666; font-size: 0.9em; font-weight: bold;">OR</span>
-
-            <textarea id="lrc-raw" placeholder="Paste raw LRC text here..."></textarea>
 
             <button id="play-btn" disabled>Play</button>
 
@@ -469,6 +479,13 @@
         document.getElementById('font-dec-btn').addEventListener('click', () => {
             if (fontSizeIndex > 0) { fontSizeIndex--; applyFontSize(); }
         });
+
+        // ── Phase ──────────────────────────────────────────────────────────────
+        function setPhase(phase) {
+            document.body.classList.remove('phase-video', 'phase-lyrics', 'phase-play');
+            document.body.classList.add('phase-' + phase);
+        }
+        setPhase('video');
 
         // ── Fullscreen ─────────────────────────────────────────────────────────
         function toggleFullscreen() {
@@ -644,6 +661,7 @@
             document.getElementById('video-duration').innerText = "";
             document.getElementById('play-btn').disabled = true;
             lastTitle = '';
+            setPhase('video');
             if (!player) {
                 player = new YT.Player('player', {
                     height: '56', width: '200', videoId,
@@ -695,6 +713,7 @@
                 const searchInput = document.getElementById('lyrics-search');
                 const cleaned = cleanTitleForSearch(data.title);
                 searchInput.value = cleaned;
+                setPhase('lyrics');
                 triggerSearch(cleaned);
             }
 
@@ -750,7 +769,7 @@
                         renderLyrics(parsedLyrics);
                         resultsBox.classList.remove('active');
                         document.getElementById('lyrics-search').value = `${track.artistName} - ${track.trackName}`;
-                        document.getElementById('lrc-raw').value = '';
+                        setPhase('play');
                     });
                     resultsBox.appendChild(div);
                 });
@@ -762,14 +781,6 @@
         document.addEventListener('click', (e) => {
             if (!document.querySelector('.search-group').contains(e.target))
                 document.getElementById('search-results').classList.remove('active');
-        });
-
-        document.getElementById('lrc-raw').addEventListener('input', (e) => {
-            const text = e.target.value.trim();
-            if (!text) return;
-            parsedLyrics = parseLRC(text);
-            renderLyrics(parsedLyrics);
-            document.getElementById('lyrics-search').value = '';
         });
 
         // ── Helpers ────────────────────────────────────────────────────────────
