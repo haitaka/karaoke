@@ -365,6 +365,7 @@
         <div class="controls">
             <div class="search-group" id="yt-search-group">
                 <input type="text" id="yt-url" placeholder="Search or paste YouTube URL…">
+                <button id="yt-search-btn">Search</button>
                 <div id="yt-results"></div>
             </div>
 
@@ -375,6 +376,7 @@
 
             <div class="search-group" id="lyrics-search-group">
                 <input type="text" id="lyrics-search" placeholder="Search lrclib.net...">
+                <button id="lyrics-search-btn">Search</button>
                 <div id="search-results"></div>
             </div>
 
@@ -602,6 +604,13 @@
             }
         });
 
+        document.getElementById('yt-search-btn').addEventListener('click', () => {
+            clearTimeout(ytSearchTimer);
+            const val = ytInput.value.trim();
+            if (extractVideoID(val)) loadVideoById(extractVideoID(val));
+            else searchYouTube(val);
+        });
+
         async function searchYouTube(query) {
             ytResultsBox.innerHTML = '<div class="result-item" style="color:#b3b3b3;">Searching…</div>';
             ytResultsBox.classList.add('active');
@@ -745,6 +754,11 @@
                 clearTimeout(autoSearchTimer);
                 doSearch(e.target.value.trim());
             }
+        });
+
+        document.getElementById('lyrics-search-btn').addEventListener('click', () => {
+            clearTimeout(autoSearchTimer);
+            doSearch(document.getElementById('lyrics-search').value.trim());
         });
 
         async function doSearch(query) {
