@@ -108,7 +108,7 @@
             left: 0;
             margin-top: 5px;
             background: #282828;
-            width: 350px;
+            width: 460px;
             max-height: 300px;
             overflow-y: auto;
             border-radius: 6px;
@@ -369,7 +369,6 @@
 
             <div class="search-group" id="lyrics-search-group">
                 <input type="text" id="lyrics-search" placeholder="Search lrclib.net...">
-                <button id="search-btn">Search</button>
                 <div id="search-results"></div>
             </div>
 
@@ -729,12 +728,15 @@
             autoSearchTimer = setTimeout(() => doSearch(query), 600);
         }
 
-        document.getElementById('search-btn').addEventListener('click', () => {
-            doSearch(document.getElementById('lyrics-search').value.trim());
+        document.getElementById('lyrics-search').addEventListener('input', (e) => {
+            triggerSearch(e.target.value.trim());
         });
 
         document.getElementById('lyrics-search').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') doSearch(document.getElementById('lyrics-search').value.trim());
+            if (e.key === 'Enter') {
+                clearTimeout(autoSearchTimer);
+                doSearch(e.target.value.trim());
+            }
         });
 
         async function doSearch(query) {
