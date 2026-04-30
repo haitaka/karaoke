@@ -362,6 +362,50 @@
             font-size: 0.85em;
         }
 
+        /* ── Easter egg overlay ── */
+        #easter-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.88);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        #easter-overlay.active { opacity: 1; }
+
+        #easter-words {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.2em;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0 5vw;
+        }
+
+        .easter-word {
+            font-size: 10vw;
+            font-weight: 900;
+            display: inline-block;
+            text-shadow: 0 0 40px currentColor;
+            animation: easter-bounce 0.5s ease-in-out infinite alternate;
+        }
+
+        .easter-word:nth-child(1) { color: #d03c5a; animation-delay: 0s; }
+        .easter-word:nth-child(2) { color: #ff8c42; animation-delay: 0.12s; }
+        .easter-word:nth-child(3) { color: #ffd166; animation-delay: 0.24s; }
+        .easter-word:nth-child(4) { color: #06d6a0; animation-delay: 0.36s; }
+        .easter-word:nth-child(5) { animation-delay: 0.48s; font-size: 12vw; }
+
+        @keyframes easter-bounce {
+            from { transform: translateY(0) rotate(-4deg) scale(0.95); }
+            to   { transform: translateY(-0.3em) rotate(4deg) scale(1.1); }
+        }
+
     </style>
 </head>
 <body>
@@ -419,6 +463,16 @@
         <div class="float-group">
             <button class="float-btn" id="fullscreen-btn" title="Toggle fullscreen (F)">⛶</button>
             <button class="float-btn" id="shortcuts-btn" title="Keyboard shortcuts (?)">?</button>
+        </div>
+    </div>
+
+    <div id="easter-overlay">
+        <div id="easter-words">
+            <span class="easter-word">This</span>
+            <span class="easter-word">is</span>
+            <span class="easter-word">sandpit</span>
+            <span class="easter-word">turtle</span>
+            <span class="easter-word">🐢</span>
         </div>
     </div>
 
@@ -868,8 +922,10 @@
                 if (!m) return acc;
                 const ms = parseInt(m[3]) * (m[3].length === 2 ? 10 : 1);
                 const time = parseInt(m[1]) * 60 + parseInt(m[2]) + ms / 1000;
-                const text = line.replace(timeRe, '').trim();
-                if (text) acc.push({ time, text });
+                const raw = line.replace(timeRe, '').trim();
+                const isEgg = /this\s+is\s+sempiternal/i.test(raw);
+                const text = isEgg ? 'This is sandpit turtle' : raw;
+                if (text) acc.push({ time, text, easterEgg: isEgg });
                 return acc;
             }, []);
         }
@@ -894,6 +950,14 @@
             });
         }
 
+        function showEasterEgg() {
+            document.getElementById('easter-overlay').classList.add('active');
+        }
+
+        function hideEasterEgg() {
+            document.getElementById('easter-overlay').classList.remove('active');
+        }
+
         function syncLyrics() {
             if (!player?.getCurrentTime || !parsedLyrics.length) return;
             const t = player.getCurrentTime();
@@ -902,10 +966,13 @@
                 if (t >= parsedLyrics[i].time) idx = i; else break;
             }
             if (idx === currentActiveIndex || idx === -1) return;
-            if (currentActiveIndex !== -1)
+            if (currentActiveIndex !== -1) {
                 document.getElementById(`lyric-${currentActiveIndex}`)?.classList.remove('active');
+                if (parsedLyrics[currentActiveIndex]?.easterEgg) hideEasterEgg();
+            }
             const el = document.getElementById(`lyric-${idx}`);
             if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            if (parsedLyrics[idx]?.easterEgg) showEasterEgg();
             currentActiveIndex = idx;
         }
     </script>
