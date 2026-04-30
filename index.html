@@ -262,6 +262,8 @@
             text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 70%, transparent);
         }
 
+        body.no-glow .lyric-line.active { text-shadow: none; }
+
         /* ── Floating controls ── */
         #floating-controls {
             position: fixed;
@@ -417,6 +419,7 @@
             <button class="float-btn" id="font-inc-btn" title="Increase font size (+)">+</button>
         </div>
         <div class="float-group">
+            <button class="float-btn" id="glow-btn" title="Toggle text glow">✦</button>
             <button class="float-btn" id="fullscreen-btn" title="Toggle fullscreen (F)">⛶</button>
             <button class="float-btn" id="shortcuts-btn" title="Keyboard shortcuts (?)">?</button>
         </div>
@@ -503,6 +506,19 @@
         function toggleFullscreen() {
             document.body.classList.toggle('fullscreen');
         }
+        // ── Glow toggle ───────────────────────────────────────────────────────
+        const glowBtn = document.getElementById('glow-btn');
+        let glowOn = localStorage.getItem('glowOn') !== 'false';
+
+        function applyGlow() {
+            document.body.classList.toggle('no-glow', !glowOn);
+            glowBtn.style.opacity = glowOn ? '1' : '0.35';
+            localStorage.setItem('glowOn', glowOn);
+        }
+
+        glowBtn.addEventListener('click', () => { glowOn = !glowOn; applyGlow(); });
+        applyGlow();
+
         document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
 
         // ── Shortcuts toast ────────────────────────────────────────────────────
